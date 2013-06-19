@@ -9,6 +9,9 @@ BEGIN {
 	$Type::Exception::VERSION   = '0.007_09';
 }
 
+use Has::Tiny ();
+sub _has { unshift @_, "Has::Tiny"; goto \&Has::Tiny::has }
+
 use overload
 	q[""]    => sub { $_[0]->to_string },
 	fallback => 1,
@@ -79,9 +82,9 @@ sub throw
 	);
 }
 
-sub message     { $_[0]{message} ||= $_[0]->_build_message };
-sub context     { $_[0]{context} };
-sub stack_trace { $_[0]{stack_trace} };
+_has message     => (builder => sub { 'An exception has occurred' });
+_has context     => (predicate => 1);
+_has stack_trace => (predicate => 1);
 
 sub to_string
 {
@@ -92,11 +95,6 @@ sub to_string
 	$m =~ /\n\z/s ? $m :
 	$c            ? sprintf("%s at %s line %d.\n", $m, $c->{file}, $c->{line}) :
 	sprintf("%s\n", $m);
-}
-
-sub _build_message
-{
-	return 'An exception has occurred';
 }
 
 sub croak
@@ -180,6 +178,10 @@ use the C<< $StackTrace >> package variable to switch it on.
 =head2 Methods
 
 =over
+
+=item C<has_context>, C<has_stack_trace>
+
+Predicate methods.
 
 =item C<to_string>
 
