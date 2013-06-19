@@ -9,9 +9,11 @@ BEGIN {
 	$Type::Tiny::Duck::VERSION   = '0.007_09';
 }
 
+use Has::Tiny ();
 use Scalar::Util qw< blessed >;
 
 sub _croak ($;@) { require Type::Exception; goto \&Type::Exception::croak }
+sub _has { unshift @_, "Has::Tiny"; goto \&Has::Tiny::has }
 
 use base "Type::Tiny";
 
@@ -24,9 +26,11 @@ sub new {
 	return $proto->SUPER::new(%opts);
 }
 
-sub methods     { $_[0]{methods} }
-sub inlined     { $_[0]{inlined} ||= $_[0]->_build_inlined }
+_has methods     => (required => 1);
+_has inlined     => (builder => 1);
+_has parent      => (builder => sub { require Types::Standard; Types::Standard::Object() });
 
+sub has_parent  { !!1 }
 sub has_inlined { !!1 }
 
 sub _build_constraint
@@ -65,17 +69,6 @@ sub _instantiate_moose_type
 	
 	require Moose::Meta::TypeConstraint::DuckType;
 	return "Moose::Meta::TypeConstraint::DuckType"->new(%opts, methods => $self->methods);
-}
-
-sub has_parent
-{
-	!!1;
-}
-
-sub parent
-{
-	require Types::Standard;
-	Types::Standard::Object();
 }
 
 1;

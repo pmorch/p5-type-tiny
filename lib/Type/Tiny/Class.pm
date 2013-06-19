@@ -9,9 +9,11 @@ BEGIN {
 	$Type::Tiny::Class::VERSION   = '0.007_09';
 }
 
+use Has::Tiny ();
 use Scalar::Util qw< blessed >;
 
 sub _croak ($;@) { require Type::Exception; goto \&Type::Exception::croak }
+sub _has { unshift @_, "Has::Tiny"; goto \&Has::Tiny::has }
 
 use base "Type::Tiny";
 
@@ -26,9 +28,11 @@ sub new {
 	return $proto->SUPER::new(%opts);
 }
 
-sub class       { $_[0]{class} }
-sub inlined     { $_[0]{inlined} ||= $_[0]->_build_inlined }
+_has class       => (required => 1);
+_has inlined     => (builder => 1);
+_has parent      => (builder => 1);
 
+sub has_parent  { !!1 }
 sub has_inlined { !!1 }
 
 sub _build_constraint
@@ -98,16 +102,6 @@ sub plus_constructors
 	}
 	
 	return $self->plus_coercions(\@r);
-}
-
-sub has_parent
-{
-	!!1;
-}
-
-sub parent
-{
-	$_[0]{parent} ||= $_[0]->_build_parent;
 }
 
 sub _build_parent

@@ -9,7 +9,10 @@ BEGIN {
 	$Type::Tiny::Enum::VERSION   = '0.007_09';
 }
 
+use Has::Tiny ();
+
 sub _croak ($;@) { require Type::Exception; goto \&Type::Exception::croak }
+sub _has { unshift @_, "Has::Tiny"; goto \&Has::Tiny::has }
 
 use overload q[@{}] => 'values';
 
@@ -28,8 +31,10 @@ sub new
 	return $proto->SUPER::new(%opts);
 }
 
-sub values      { $_[0]{values} }
-sub constraint  { $_[0]{constraint} ||= $_[0]->_build_constraint }
+_has values      => (required => 1);
+_has parent      => (builder => sub { require Types::Standard; Types::Standard::Str() });
+
+sub has_parent  { !!1 }
 
 sub _build_display_name
 {
@@ -67,17 +72,6 @@ sub _instantiate_moose_type
 	delete $opts{inlined};
 	require Moose::Meta::TypeConstraint::Enum;
 	return "Moose::Meta::TypeConstraint::Enum"->new(%opts, values => $self->values);
-}
-
-sub has_parent
-{
-	!!1;
-}
-
-sub parent
-{
-	require Types::Standard;
-	Types::Standard::Str();
 }
 
 1;

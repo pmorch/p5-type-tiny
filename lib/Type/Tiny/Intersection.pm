@@ -9,10 +9,12 @@ BEGIN {
 	$Type::Tiny::Intersection::VERSION   = '0.007_09';
 }
 
+use Has::Tiny ();
 use Scalar::Util qw< blessed >;
 use Types::TypeTiny ();
 
 sub _croak ($;@) { require Type::Exception; goto \&Type::Exception::croak }
+sub _has { unshift @_, "Has::Tiny"; goto \&Has::Tiny::has }
 
 use overload q[@{}] => 'type_constraints';
 
@@ -31,8 +33,7 @@ sub new {
 	return $proto->SUPER::new(%opts);
 }
 
-sub type_constraints { $_[0]{type_constraints} }
-sub constraint       { $_[0]{constraint} ||= $_[0]->_build_constraint }
+_has type_constraints => ();
 
 sub _build_display_name
 {
