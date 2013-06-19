@@ -21,6 +21,7 @@ our %CarpInternal;
 $CarpInternal{$_}++ for qw(
 	Eval::TypeTiny
 	Exporter::TypeTiny
+	Has::Tiny
 	Test::TypeTiny
 	Type::Coercion
 	Type::Coercion::Union
@@ -56,6 +57,7 @@ sub throw
 	while (
 		(defined scalar caller($level) and $CarpInternal{scalar caller($level)})
 		or ( (caller($level))[0] =~ /^Eval::TypeTiny::/ )
+		or ( (caller($level))[1] eq "validator(Has::Tiny)" )
 	) { $level++ };
 	if ( ((caller($level - 1))[1]||"") =~ /^parameter validation for '(.+?)'$/ )
 	{
