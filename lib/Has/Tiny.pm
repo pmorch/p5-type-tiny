@@ -2,12 +2,15 @@ package Has::Tiny;
 
 use strict;
 use warnings;
+no warnings qw(uninitialized once void numeric);
 
 use B qw(perlstring);
 
 our @EXPORT = qw(has);
 our %ATTRIBUTES;
 our %VALIDATORS;
+
+sub _croak ($;@) { require Type::Exception; goto \&Type::Exception::croak }
 
 sub import
 {
@@ -44,12 +47,15 @@ sub has
 	my $class = caller;
 	delete $VALIDATORS{$class};
 	
+	my @code = "package $class;";
 	for my $a (@$attrs)
 	{
 		$ATTRIBUTES{$class}{$a} = +{ %options };
-		$me->_build_methods($class, $a, $ATTRIBUTES{$class}{$a});
+		push @code, $me->_build_methods($class, $a, $ATTRIBUTES{$class}{$a});
 	}
+	my $str = join "\n", @code, "1;";
 	
+	eval($str) or die("COMPILE ERROR: $@\nCODE:\n$str\n");
 	return;
 }
 
@@ -65,29 +71,33 @@ sub _build_methods
 {
 	my $me = shift;
 	my ($class, $attr, $spec) = @_;
+	my @code;
 	
 	if ($spec->{is} eq q(rwp))
 	{
-		$me->_build_reader($class, $attr, $spec, $attr);
-		$me->_build_writer($class, $attr, $spec, "_set_$attr");
+		push @code,
+			$me->_build_reader($class, $attr, $spec, $attr),
+			$me->_build_writer($class, $attr, $spec, "_set_$attr");
 	}
 	elsif ($spec->{is} eq q(rw))
 	{
-		$me->_build_accessor($class, $attr, $spec, $attr);
+		push @code, $me->_build_accessor($class, $attr, $spec, $attr);
 	}
 	else
 	{
-		$me->_build_reader($class, $attr, $spec, $attr);
+		push @code, $me->_build_reader($class, $attr, $spec, $attr);
 	}
 	
 	if ($spec->{predicate} eq q(1))
 	{
-		$me->_build_predicate($class, $attr, $spec, "has_$attr");
+		push @code, $me->_build_predicate($class, $attr, $spec, "has_$attr");
 	}
 	elsif ($spec->{predicate})
 	{
-		$me->_build_predicate($class, $attr, $spec, $spec->{predicate});
+		push @code, $me->_build_predicate($class, $attr, $spec, $spec->{predicate});
 	}
+	
+	return @code;
 }
 
 sub _build_reader
@@ -111,17 +121,16 @@ sub _build_reader
 		$builder_name = $spec->{builder};
 	}
 	
-	my $code = $builder_name
-		? sprintf('package %s; sub %s { $_[0]{%s} ||= $_[0]->%s }', $class, $method, perlstring($attr), $builder_name)
-		: sprintf('package %s; sub %s { $_[0]{%s} }', $class, $method, perlstring($attr));
-	eval $code;
+	return $builder_name
+		? sprintf('sub %s { $_[0]{%s} ||= $_[0]->%s }', $method, perlstring($attr), $builder_name)
+		: sprintf('sub %s { $_[0]{%s}               }', $method, perlstring($attr));
 }
 
 sub _build_predicate
 {
 	my $me = shift;
 	my ($class, $attr, $spec, $method) = @_;
-	eval sprintf('package %s; sub %s { exists $_[0]{%s} }', $class, $method, perlstring($attr));
+	return sprintf('sub %s { exists $_[0]{%s} }', $method, perlstring($attr));
 }
 
 sub _build_writer
@@ -140,10 +149,9 @@ sub _build_writer
 		$inlined = sprintf('$Has::Tiny::ATTRIBUTES{%s}{%s}{isa}->($_[1]);', perlstring($class), perlstring($attr));
 	}
 	
-	my $code = defined($inlined)
-		? sprintf('package %s; sub %s { %s; $_[0]{%s} = $_[1] }', $class, $method, $inlined, perlstring($attr))
-		: sprintf('package %s; sub %s {     $_[0]{%s} = $_[1] }', $class, $method,           perlstring($attr));
-	eval $code;
+	return defined($inlined)
+		? sprintf('sub %s { %s; $_[0]{%s} = $_[1] }', $method, $inlined, perlstring($attr))
+		: sprintf('sub %s {     $_[0]{%s} = $_[1] }', $method,           perlstring($attr));
 }
 
 sub _build_accessor
