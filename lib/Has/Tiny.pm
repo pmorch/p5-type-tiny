@@ -66,9 +66,10 @@ sub _build_methods
 	my $me = shift;
 	my ($class, $attr, $spec) = @_;
 	
-	if ($spec->{is} eq q(ro))
+	if ($spec->{is} eq q(rwp))
 	{
 		$me->_build_reader($class, $attr, $spec, $attr);
+		$me->_build_writer($class, $attr, $spec, "_set_$attr");
 	}
 	elsif ($spec->{is} eq q(rw))
 	{
@@ -77,7 +78,6 @@ sub _build_methods
 	else
 	{
 		$me->_build_reader($class, $attr, $spec, $attr);
-		$me->_build_writer($class, $attr, $spec, "_set_$attr");
 	}
 	
 	if ($spec->{predicate} eq q(1))
@@ -113,7 +113,7 @@ sub _build_reader
 	
 	my $code = $builder_name
 		? sprintf('package %s; sub %s { $_[0]{%s} ||= $_[0]->%s }', $class, $method, perlstring($attr), $builder_name)
-		: sprintf('package %s; sub %s { $_[0]{%s} }', $class, $method, perlstring($attr));	
+		: sprintf('package %s; sub %s { $_[0]{%s} }', $class, $method, perlstring($attr));
 	eval $code;
 }
 
