@@ -10,12 +10,13 @@ BEGIN {
 }
 
 use Eval::TypeTiny ();
+use Has::Tiny ();
 use Scalar::Util qw( blessed weaken refaddr isweak );
 use Types::TypeTiny ();
 
 sub _croak ($;@) { require Type::Exception; goto \&Type::Exception::croak }
-
 sub _swap { $_[2] ? @_[1,0] : @_[0,1] }
+sub _has { unshift @_, "Has::Tiny"; goto \&Has::Tiny::has }
 
 BEGIN {
 	($] > 5.010001)
@@ -142,36 +143,30 @@ sub _dd
 	}
 }
 
-sub name                     { $_[0]{name} }
-sub display_name             { $_[0]{display_name}   ||= $_[0]->_build_display_name }
-sub parent                   { $_[0]{parent} }
-sub constraint               { $_[0]{constraint}     ||= $_[0]->_build_constraint }
-sub compiled_check           { $_[0]{compiled_check} ||= $_[0]->_build_compiled_check }
-sub coercion                 { $_[0]{coercion}       ||= $_[0]->_build_coercion }
-sub message                  { $_[0]{message} }
-sub library                  { $_[0]{library} }
-sub inlined                  { $_[0]{inlined} }
-sub constraint_generator     { $_[0]{constraint_generator} }
-sub inline_generator         { $_[0]{inline_generator} }
-sub name_generator           { $_[0]{name_generator} ||= $_[0]->_build_name_generator }
-sub coercion_generator       { $_[0]{coercion_generator} }
-sub parameters               { $_[0]{parameters} }
-sub moose_type               { $_[0]{moose_type}     ||= $_[0]->_build_moose_type }
-sub mouse_type               { $_[0]{mouse_type}     ||= $_[0]->_build_mouse_type }
-sub deep_explanation         { $_[0]{deep_explanation} }
+_has name                 => ();
+_has display_name         => (builder => 1);
+_has parent               => (predicate => 1);
+_has constraint           => (builder => 1);
+_has compiled_check       => (builder => 1);
+_has coercion             => (builder => 1);
+_has message              => (predicate => 1);
+_has library              => (predicate => 1);
+_has inlined              => (predicate => 1);
+_has constraint_generator => (predicate => 1);
+_has inline_generator     => (predicate => 1);
+_has name_generator       => (builder => 1);
+_has coercion_generator   => (predicate => 1);
+_has parameters           => (predicate => 1);
+_has moose_type           => (builder => 1);
+_has mouse_type           => (builder => 1);
+_has deep_explanation     => (predicate => 1);
+_has _default_message     => (builder => "_build_default_message");
 
-sub has_parent               { exists $_[0]{parent} }
-sub has_library              { exists $_[0]{library} }
-sub has_coercion             { exists $_[0]{coercion} and !!@{ $_[0]{coercion}->type_coercion_map } }
-sub has_inlined              { exists $_[0]{inlined} }
-sub has_constraint_generator { exists $_[0]{constraint_generator} }
-sub has_inline_generator     { exists $_[0]{inline_generator} }
-sub has_coercion_generator   { exists $_[0]{coercion_generator} }
-sub has_parameters           { exists $_[0]{parameters} }
-sub has_message              { exists $_[0]{message} }
-sub has_deep_explanation     { exists $_[0]{deep_explanation} }
-
-sub _default_message         { $_[0]{_default_message} ||= $_[0]->_build_default_message }
+sub has_coercion
+{
+	my $self = shift;
+	exists $self->{coercion} and !!@{ $self->{coercion}->type_coercion_map }
+}
 
 sub _assert_coercion
 {
