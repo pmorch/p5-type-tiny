@@ -16,7 +16,7 @@ use Types::TypeTiny ();
 sub _croak ($;@) { require Type::Exception; goto \&Type::Exception::croak }
 sub _has { unshift @_, "Has::Tiny"; goto \&Has::Tiny::has }
 
-use overload q[@{}] => 'type_constraints';
+use overload q[@{}] => sub { shift->type_constraints };
 
 use base "Type::Tiny";
 

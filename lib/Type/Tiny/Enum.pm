@@ -14,7 +14,7 @@ use Has::Tiny ();
 sub _croak ($;@) { require Type::Exception; goto \&Type::Exception::croak }
 sub _has { unshift @_, "Has::Tiny"; goto \&Has::Tiny::has }
 
-use overload q[@{}] => 'values';
+use overload q[@{}] => sub { shift->values };
 
 use base "Type::Tiny";
 

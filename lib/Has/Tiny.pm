@@ -13,6 +13,8 @@ our %VALIDATORS;
 
 sub _croak ($;@) { require Type::Exception; goto \&Type::Exception::croak }
 
+BEGIN { *CAN_HAZ_XS = eval 'use Class::XSAccessor 1.18; 1' ? sub(){!!1} : sub(){!!0} };
+
 sub import
 {
 	# do the shuffle!
@@ -158,6 +160,12 @@ sub _build_reader
 		$builder_name = $spec->{builder};
 	}
 	
+	if (CAN_HAZ_XS and not $builder_name)
+	{
+		"Class::XSAccessor"->import(class => $class, getters => { $method => $attr });
+		return;
+	}
+	
 	return $builder_name
 		? sprintf('sub %s { $_[0]{%s} ||= $_[0]->%s }', $method, perlstring($attr), $builder_name)
 		: sprintf('sub %s { $_[0]{%s}               }', $method, perlstring($attr));
@@ -167,6 +175,13 @@ sub _build_predicate
 {
 	my $me = shift;
 	my ($class, $attr, $spec, $method) = @_;
+	
+	if (CAN_HAZ_XS)
+	{
+		"Class::XSAccessor"->import(class => $class, exists_predicates => { $method => $attr });
+		return;
+	}
+	
 	return sprintf('sub %s { exists $_[0]{%s} }', $method, perlstring($attr));
 }
 
@@ -186,6 +201,12 @@ sub _build_writer
 		$inlined = sprintf('$Has::Tiny::ATTRIBUTES{%s}{%s}{isa}->($_[1]);', perlstring($class), perlstring($attr));
 	}
 	
+	if (CAN_HAZ_XS and not $inlined)
+	{
+		"Class::XSAccessor"->import(class => $class, setters => { $method => $attr });
+		return;
+	}
+	
 	return defined($inlined)
 		? sprintf('sub %s { %s; $_[0]{%s} = $_[1] }', $method, $inlined, perlstring($attr))
 		: sprintf('sub %s {     $_[0]{%s} = $_[1] }', $method,           perlstring($attr));
@@ -195,7 +216,27 @@ sub _build_accessor
 {
 	my $me = shift;
 	my ($class, $attr, $spec, $method) = @_;
-	...;
+	
+	my $inlined;
+	my $isa = $spec->{isa};
+	if (blessed($isa) and $isa->can_be_inlined)
+	{
+		$inlined = $isa->inline_assert('$_[1]');
+	}
+	elsif ($isa)
+	{
+		$inlined = sprintf('$Has::Tiny::ATTRIBUTES{%s}{%s}{isa}->($_[1]);', perlstring($class), perlstring($attr));
+	}
+	
+	if (CAN_HAZ_XS and not $inlined)
+	{
+		"Class::XSAccessor"->import(class => $class, accessors => { $method => $attr });
+		return;
+	}
+	
+	return defined($inlined)
+		? sprintf('sub %s { return $_[0]{%s} unless @_; %s; $_[0]{%s} = $_[1] }', $method, perlstring($attr), $inlined, perlstring($attr))
+		: sprintf('sub %s { return $_[0]{%s} unless @_;     $_[0]{%s} = $_[1] }', $method, perlstring($attr),           perlstring($attr));
 }
 
 sub _compile_validator
@@ -305,7 +346,8 @@ Has::Tiny provides a Moose-like C<has> function. It is not particularly
 full-featured, providing just enough to be useful for L<Type::Tiny> and
 related modules.
 
-Generally speaking, I'd recommend using L<Moo> or L<Moose> instead.
+Generally speaking, I'd recommend using L<Moo> or L<Moose> instead, but
+if you want to use this then I'm fairly unlikely to hunt you down with dogs.
 
 =head2 Methods
 
