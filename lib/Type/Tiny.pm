@@ -143,10 +143,17 @@ sub _dd
 	}
 }
 
+my $null_constraint = sub { !!1 };
+
+sub _is_null_constraint
+{
+	shift->constraint == $null_constraint;
+}
+
 _has name                 => ();
-_has display_name         => (builder => 1);
+_has display_name         => (builder => sub { shift->name });
 _has parent               => (predicate => 1);
-_has constraint           => (builder => 1);
+_has constraint           => (builder => sub { $null_constraint });
 _has compiled_check       => (builder => 1);
 _has coercion             => (builder => 1);
 _has message              => (predicate => 1);
@@ -174,23 +181,6 @@ sub _assert_coercion
 	_croak "No coercion for this type constraint"
 		unless $self->has_coercion && @{$self->coercion->type_coercion_map};
 	return $self->coercion;
-}
-
-my $null_constraint = sub { !!1 };
-
-sub _build_display_name
-{
-	shift->name;
-}
-
-sub _build_constraint
-{
-	return $null_constraint;
-}
-
-sub _is_null_constraint
-{
-	shift->constraint == $null_constraint;
 }
 
 sub _build_coercion

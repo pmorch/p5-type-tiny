@@ -69,7 +69,7 @@ sub new
 }
 
 _has name                 => ();
-_has display_name         => (builder => 1);
+_has display_name         => (builder => sub { shift->name });
 _has library              => (predicate => 1);
 _has type_constraint      => ();
 _has type_coercion_map    => (builder => sub { [] });
@@ -109,11 +109,6 @@ sub add
 	$new->add_type_coercions( @{$x->type_coercion_map} );
 	$new->add_type_coercions( @{$y->type_coercion_map} );
 	return $new;
-}
-
-sub _build_display_name
-{
-	shift->name;
 }
 
 sub qualified_name
