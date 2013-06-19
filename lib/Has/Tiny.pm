@@ -60,6 +60,19 @@ sub has
 	return;
 }
 
+sub assert_valid
+{
+	my $me = shift;
+	my ($class, $hash) = @_;
+	
+	my @validator = map {
+		$VALIDATORS{$_} ||= $me->_compile_validator($_, $ATTRIBUTES{$_});
+	} $me->_find_parents($class);
+	
+	$_->($hash) for @validator;
+	return $hash;
+}
+
 my $default_buildargs = sub
 {
 	my $class = shift;
@@ -77,15 +90,12 @@ sub create_constructor
 	
 	my $build     = $options{build};
 	my $buildargs = $options{buildargs} || $default_buildargs;
-	my @validator = map {
-		$VALIDATORS{$_} ||= $me->_compile_validator($_, $ATTRIBUTES{$_});
-	} $me->_find_parents($class);
 	
 	my $code = sub
 	{
 		my $class = shift;
 		my $self = bless($class->$buildargs(@_), $class);
-		$_->($self) for @validator;
+		$me->assert_valid($class, $self);
 		$self->$build if $options{build};
 		return $self;
 	};
@@ -345,6 +355,25 @@ Currently supported options:
 =item C<< build => $coderef | $method_name >>
 
 =back
+
+There's no law that says you have to use C<create_constructor>. You can
+write your own constructor if you like. In which case, you might like to
+make use of...
+
+=item C<< assert_valid($class, \%params) >>
+
+Check that a hash of parameters is valid according to type constraints and
+required attributes of C<< $class >> and any classes it inherits from.
+
+Returns the hashref or dies.
+
+   sub new {
+      my ($class, %params) = @_;
+      ...; # other stuff here
+      my $self = bless(Has::Tiny->assert_valid($class, \%params), $class);
+      ...; # other stuff here
+      return $self;
+   }
 
 =back
 
