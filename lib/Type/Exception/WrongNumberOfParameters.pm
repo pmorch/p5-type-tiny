@@ -11,12 +11,11 @@ BEGIN {
 
 use base "Type::Exception";
 
-sub minimum    { $_[0]{minimum} };
-sub maximum    { $_[0]{maximum} };
-sub got        { $_[0]{got} };
+use Has::Tiny ();
+sub _has { unshift @_, "Has::Tiny"; goto \&Has::Tiny::has }
 
-sub has_minimum { exists $_[0]{minimum} };
-sub has_maximum { exists $_[0]{maximum} };
+_has got                     => ();
+_has [qw/ maximum minimum /] => (predicate => 1);
 
 sub _build_message
 {

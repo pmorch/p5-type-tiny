@@ -9,17 +9,21 @@ BEGIN {
 	$Type::Exception::Assertion::VERSION   = '0.007_09';
 }
 
+use Has::Tiny ();
+sub _has { unshift @_, "Has::Tiny"; goto \&Has::Tiny::has }
+
 use base "Type::Exception";
 
-sub type               { $_[0]{type} };
-sub value              { $_[0]{value} };
-sub varname            { $_[0]{varname} ||= '$_' };
-sub attribute_step     { $_[0]{attribute_step} };
-sub attribute_name     { $_[0]{attribute_name} };
+_has type            => ();
+_has value           => ();
+_has varname         => (builder => sub { '$_' });
 
-sub has_type           { defined $_[0]{type} }; # sic
-sub has_attribute_step { exists $_[0]{attribute_step} };
-sub has_attribute_name { exists $_[0]{attribute_name} };
+_has [qw/ attribute_step attribute_name /] => (predicate => 1);
+
+sub has_type
+{
+	defined $_[0]{type} # sic
+}
 
 sub new
 {

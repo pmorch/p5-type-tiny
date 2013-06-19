@@ -45,6 +45,9 @@ use_ok("Type::Tiny::Role");
 use_ok("Type::Tiny::Union");
 use_ok("Type::Utils");
 use_ok("Type::Params");
+use_ok("Type::Parser");
+use_ok("Type::Registry");
+use_ok("Has::Tiny");
 
 BAIL_OUT("Further tests rely on all modules compiling.")
 	unless "Test::Builder"->new->is_passing;

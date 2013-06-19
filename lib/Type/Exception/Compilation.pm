@@ -11,9 +11,12 @@ BEGIN {
 
 use base "Type::Exception";
 
-sub code        { $_[0]{code} };
-sub environment { $_[0]{environment} ||= {} };
-sub errstr      { $_[0]{errstr} };
+use Has::Tiny ();
+sub _has { unshift @_, "Has::Tiny"; goto \&Has::Tiny::has }
+
+_has code        => ();
+_has environment => (builder => sub { +{} });
+_has errstr      => ();
 
 sub _build_message
 {
