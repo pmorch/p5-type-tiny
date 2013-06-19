@@ -10,10 +10,12 @@ BEGIN {
 }
 
 use Eval::TypeTiny ();
+use Has::Tiny ();
 use Scalar::Util qw< blessed >;
 use Types::TypeTiny ();
 
 sub _croak ($;@) { require Type::Exception; goto \&Type::Exception::croak }
+sub _has { unshift @_, "Has::Tiny"; goto \&Has::Tiny::has }
 
 use overload
 	q("")      => sub { caller =~ m{^(Moo::HandleMoose|Sub::Quote)} ? overload::StrVal($_[0]) : $_[0]->display_name },
@@ -66,21 +68,21 @@ sub new
 	return $self;
 }
 
-sub name                   { $_[0]{name} }
-sub display_name           { $_[0]{display_name}      ||= $_[0]->_build_display_name }
-sub library                { $_[0]{library} }
-sub type_constraint        { $_[0]{type_constraint} }
-sub type_coercion_map      { $_[0]{type_coercion_map} ||= [] }
-sub moose_coercion         { $_[0]{moose_coercion}    ||= $_[0]->_build_moose_coercion }
-sub compiled_coercion      { $_[0]{compiled_coercion} ||= $_[0]->_build_compiled_coercion }
-sub frozen                 { $_[0]{frozen}            ||= 0 }
-sub coercion_generator     { $_[0]{coercion_generator} }
-sub parameters             { $_[0]{parameters} }
+_has name                 => ();
+_has display_name         => (builder => 1);
+_has library              => (predicate => 1);
+_has type_constraint      => ();
+_has type_coercion_map    => (builder => sub { [] });
+_has moose_coercion       => (builder => 1);
+_has compiled_coercion    => (builder => 1);
+_has frozen               => (builder => sub { 0 });
+_has coercion_generator   => (predicate => 1);
+_has parameters           => (predicate => 1);
 
-sub has_library            { exists $_[0]{library} }
-sub has_type_constraint    { defined $_[0]{type_constraint} } # sic
-sub has_coercion_generator { exists $_[0]{coercion_generator} }
-sub has_parameters         { exists $_[0]{parameters} }
+sub has_type_constraint
+{
+	defined $_[0]{type_constraint}; # sic
+}
 
 sub add
 {
