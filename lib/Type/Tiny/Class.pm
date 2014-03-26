@@ -20,6 +20,12 @@ sub _croak ($;@) { require Error::TypeTiny; goto \&Error::TypeTiny::croak }
 require Type::Tiny;
 our @ISA = 'Type::Tiny';
 
+BEGIN {
+	*_HAS_SAFE_ISA = eval { require Safe::Isa::XS }
+		? sub () { !!1 }
+		: sub () { !!0 }
+}
+
 sub new {
 	my $proto = shift;
 	return $proto->class->new(@_) if blessed $proto; # DWIM
@@ -51,7 +57,9 @@ sub _build_inlined
 	my $class = $self->class;
 	sub {
 		my $var = $_[1];
-		qq{Scalar::Util::blessed($var) and $var->isa(q[$class])};
+		_HAS_SAFE_ISA
+			? qq{Safe::Isa::XS::_isa($var, q[$class])}
+			: qq{Scalar::Util::blessed($var) and $var->isa(q[$class])}
 	};
 }
 
